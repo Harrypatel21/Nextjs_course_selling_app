@@ -1,6 +1,7 @@
 import NextAuth, { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import client from "../../../db"
 
 export const authOptions: AuthOptions = {
     providers: [
@@ -11,21 +12,28 @@ export const authOptions: AuthOptions = {
             password: { label: "Password", type: "password" }
           },
           async authorize(credentials, req) {
-            const username = credentials?.username;
-            const password = credentials?.password;
-
-
-            //db request to check if the username and password are correct basically the authentication part!
-            const user = { 
-                id: "1", 
-                name: "Rohan Dev Singh", 
-                email: "rohandev.rs@gmail.com" 
-            }
-      
-            if (user) {
-              return user
-            } else {
+            
+            if(!credentials?. username || !credentials?.password) {
               return null;
+            }
+
+            const user = await client.user.findUnique({
+              where: {
+                username: credentials.username,     
+              }
+            })
+      
+            if (!user) {
+              return null;
+            }
+            if (user.password !== credentials.password) {
+              return null;
+            }
+            return {
+              id: user.id.toString(),
+              name: user.username,
+              // password: user.password,
+              
             }
           }
         }),
@@ -37,6 +45,24 @@ export const authOptions: AuthOptions = {
 
       ],
       secret: process.env.NEXTAUTH_SECRET,
+
+      callbacks: {
+       async jwt({token, user}){
+        if(user){
+          token.id = user.id;
+        }
+        return token;
+       },
+
+        async session({ session, token }) {
+          if (session.user) {
+            (session.user as any).id = token.id;
+            // (session.token as any) = token; // Add the token to the session
+          }
+          return session;
+        },
+    
+      }
 };
 
 const handler = NextAuth(authOptions);
