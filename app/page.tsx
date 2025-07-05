@@ -31,7 +31,7 @@ export default function Home(){
         />
         <div className="mt-4 text-center">
           {status === "authenticated" ? (
-            <p>Welcome back, {session?.user.name} !</p>
+            <p>Welcome back!</p>
           ) : (
             <p>Please sign in to access your courses.</p>
           )}
